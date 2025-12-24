@@ -1,65 +1,78 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useState } from "react";
+import { useGetSignaturesForAddressMutation } from "@/api";
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    const [wallet, setWallet] = useState("");
+    const [isValid, setIsValid] = useState(false);
+    const [getSignatures, { data: signatures, isLoading, error }] = useGetSignaturesForAddressMutation();
+
+    const handleInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setWallet(value);
+
+        // Простая валидация Solana адреса (Base58, длина 32-44 символа)
+        const solanaRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+        setIsValid(solanaRegex.test(value));
+    }, []);
+
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+            <main className="flex w-full max-w-5xl flex-col items-center gap-6 px-4 py-12">
+                <input
+                    type="text"
+                    placeholder="FeutrNsE4P21kLoEqteLQYQpH2PQQF8nyC6ZWzEkpump"
+                    maxLength={44}
+                    minLength={32}
+                    value={wallet}
+                    onChange={handleInput}
+                    className="w-full rounded-lg border border-zinc-300 p-4 text-center text-lg shadow-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-white dark:focus:ring-white"
+                />
+                <button
+                    disabled={!isValid || isLoading}
+                    onClick={() => getSignatures({ address: wallet, limit: 20 })}
+                    className={`rounded-full px-8 py-3 font-semibold transition-all ${isValid && !isLoading
+                        ? "bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                        : "cursor-not-allowed bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
+                        }`}
+                >
+                    {isLoading ? "Загрузка..." : "Продолжить"}
+                </button>
+
+                {error && (
+                    <div className="text-red-500">
+                        Произошла ошибка при получении данных
+                    </div>
+                )}
+
+                {signatures && (
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full text-left text-sm text-zinc-500 dark:text-zinc-400">
+                            <thead className="bg-zinc-50 text-xs uppercase text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                <tr>
+                                    <th className="px-6 py-3">Signature</th>
+                                    <th className="px-6 py-3">Slot</th>
+                                    <th className="px-6 py-3">Status</th>
+                                    <th className="px-6 py-3">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {signatures.map((sig) => (
+                                    <tr key={sig.signature} className="border-b bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                                        <td className="px-6 py-4 font-medium text-zinc-900 dark:text-white truncate max-w-[200px]" title={sig.signature}>
+                                            {sig.signature.slice(0, 20)}...
+                                        </td>
+                                        <td className="px-6 py-4">{sig.slot}</td>
+                                        <td className="px-6 py-4">{sig.confirmationStatus}</td>
+                                        <td className="px-6 py-4">{sig.blockTime ? new Date(sig.blockTime * 1000).toLocaleString() : "N/A"}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </main>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    );
 }

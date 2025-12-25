@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useGetSignaturesForAddressMutation } from "@/api";
+import { useGetSignaturesForAddressQuery } from "@/api";
 import { SignaturesTable } from "./components/signatures-table";
 
 export default function Home() {
     const [wallet, setWallet] = useState("");
     const [isValid, setIsValid] = useState(false);
-    const [getSignatures, { data: signatures, isLoading, error }] = useGetSignaturesForAddressMutation();
-
+    const [queryAddress, setQueryAddress] = useState("");
+    const { data: signatures, isLoading, error } = useGetSignaturesForAddressQuery({ address: queryAddress, limit: 20 }, { skip: !queryAddress });
+    // const { data, isLoading: isLoadingTransaction } = useGetAccountInfoQuery({ address: queryAddress }, { skip: !queryAddress });
     const handleInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setWallet(value);
@@ -32,7 +33,7 @@ export default function Home() {
                 />
                 <button
                     disabled={!isValid || isLoading}
-                    onClick={() => getSignatures({ address: wallet, limit: 20 })}
+                    onClick={() => setQueryAddress(wallet)}
                     className={`rounded-full px-8 py-3 font-semibold transition-all ${isValid && !isLoading
                         ? "bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                         : "cursor-not-allowed bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"

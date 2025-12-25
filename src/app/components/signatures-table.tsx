@@ -5,9 +5,10 @@ import { SignatureRow } from "./signature-row";
 
 interface SignaturesTableProps {
     signatures: SignatureInfo[];
+    isLoading: boolean;
 }
 
-export const SignaturesTable: React.FC<SignaturesTableProps> = ({ signatures }) => {
+export const SignaturesTable: React.FC<SignaturesTableProps> = ({ signatures, isLoading }) => {
     return (
         <div className="w-full overflow-x-auto">
             <table className="w-full text-left text-sm text-zinc-500 dark:text-zinc-400">
@@ -21,7 +22,7 @@ export const SignaturesTable: React.FC<SignaturesTableProps> = ({ signatures }) 
                 </thead>
                 <tbody>
                     {signatures.map((sig, index) => (
-                        <SignatureRow key={sig.signature} sig={sig} index={index + 1} />
+                        <SignatureRow key={sig.signature} sig={sig} index={isLoading ? -1 : signatures.length - index} />
                     ))}
                 </tbody>
             </table>

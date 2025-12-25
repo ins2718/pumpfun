@@ -22,7 +22,7 @@ export const SignatureRow: React.FC<{ sig: SignatureInfo, index: number }> = ({ 
 
     return (
         <tr className="border-b bg-white dark:border-zinc-700 dark:bg-zinc-900">
-            <td className="px-6 py-4 text-center">{index}</td>
+            <td className="px-6 py-4 text-center">{index < 0 ? "#" : index}</td>
             <td className="px-6 py-4 font-medium text-zinc-900 dark:text-white truncate max-w-50" title={sig.signature}>
                 <a href={`https://solscan.io/tx/${sig.signature}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">
                     {sig.signature.slice(0, 20)}...

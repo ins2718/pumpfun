@@ -32,19 +32,15 @@ export default function Home() {
         let currentBefore: string | undefined = undefined;
         let hasMore = true;
         let totalLoaded = 0;
+        const delay = 10000;
 
         try {
             while (hasMore) {
-                // Добавляем задержку между запросами, кроме первого
-                if (totalLoaded > 0) {
-                    await sleep(5000);
-                }
-
                 const result = await trigger({ address: wallet, limit: 1000, before: currentBefore }).unwrap();
 
                 if (result === undefined) {
-                    setStatus("Ошибка ответа API, повтор через 5 секунд...");
-                    await sleep(5000);
+                    setStatus(`Ошибка ответа API, повтор через ${delay / 1000} секунд...`);
+                    await sleep(delay);
                     continue;
                 }
 
@@ -97,7 +93,7 @@ export default function Home() {
                     </div>
                 )}
 
-                {signatures.length > 0 && <SignaturesTable signatures={signatures} />}
+                {signatures.length > 0 && <SignaturesTable signatures={signatures} isLoading={isLoading} />}
             </main>
         </div>
     );

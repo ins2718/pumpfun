@@ -1,15 +1,19 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useGetSignaturesForAddressQuery } from "@/api";
+import { useLazyGetSignaturesForAddressQuery } from "@/api";
 import { SignaturesTable } from "./components/signatures-table";
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function Home() {
     const [wallet, setWallet] = useState("");
     const [isValid, setIsValid] = useState(false);
-    const [queryAddress, setQueryAddress] = useState("");
-    const { data: signatures, isLoading, error } = useGetSignaturesForAddressQuery({ address: queryAddress, limit: 20 }, { skip: !queryAddress });
-    // const { data, isLoading: isLoadingTransaction } = useGetAccountInfoQuery({ address: queryAddress }, { skip: !queryAddress });
+    const [signatures, setSignatures] = useState<SignatureInfo[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [status, setStatus] = useState("");
+    const [trigger] = useLazyGetSignaturesForAddressQuery();
+
     const handleInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setWallet(value);
@@ -18,6 +22,51 @@ export default function Home() {
         const solanaRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
         setIsValid(solanaRegex.test(value));
     }, []);
+
+    const handleLoad = async () => {
+        if (!isValid) return;
+        setIsLoading(true);
+        setSignatures([]);
+        setStatus("Начинаем загрузку...");
+
+        let currentBefore: string | undefined = undefined;
+        let hasMore = true;
+        let totalLoaded = 0;
+
+        try {
+            while (hasMore) {
+                // Добавляем задержку между запросами, кроме первого
+                if (totalLoaded > 0) {
+                    await sleep(5000);
+                }
+
+                const result = await trigger({ address: wallet, limit: 1000, before: currentBefore }).unwrap();
+
+                if (result === undefined) {
+                    setStatus("Ошибка ответа API, повтор через 5 секунд...");
+                    await sleep(5000);
+                    continue;
+                }
+
+                if (result.length > 0) {
+                    setSignatures((prev) => [...prev, ...result]);
+                    totalLoaded += result.length;
+                    setStatus(`Загружено ${totalLoaded} транзакций...`);
+
+                    currentBefore = result[result.length - 1].signature;
+                    if (result.length < 1000) hasMore = false;
+                } else {
+                    hasMore = false;
+                }
+            }
+            setStatus(`Загрузка завершена. Всего: ${totalLoaded}`);
+        } catch (e) {
+            setStatus("Ошибка при загрузке");
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -33,7 +82,7 @@ export default function Home() {
                 />
                 <button
                     disabled={!isValid || isLoading}
-                    onClick={() => setQueryAddress(wallet)}
+                    onClick={handleLoad}
                     className={`rounded-full px-8 py-3 font-semibold transition-all ${isValid && !isLoading
                         ? "bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                         : "cursor-not-allowed bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
@@ -42,13 +91,13 @@ export default function Home() {
                     {isLoading ? "Загрузка..." : "Продолжить"}
                 </button>
 
-                {error && (
-                    <div className="text-red-500">
-                        Произошла ошибка при получении данных
+                {status && (
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                        {status}
                     </div>
                 )}
 
-                {signatures && <SignaturesTable signatures={signatures} />}
+                {signatures.length > 0 && <SignaturesTable signatures={signatures} />}
             </main>
         </div>
     );

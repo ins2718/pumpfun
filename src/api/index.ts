@@ -18,8 +18,8 @@ export const api = createApi({
     }),
     tagTypes: [],
     endpoints: (builder) => ({
-        getSignaturesForAddress: builder.query<SignatureInfo[], { address: string; limit?: number }>({
-            query: ({ address, limit }) => ({
+        getSignaturesForAddress: builder.query<SignatureInfo[], { address: string; limit?: number; before?: string }>({
+            query: ({ address, limit, before }) => ({
                 url: "rpc",
                 method: "POST",
                 body: {
@@ -28,7 +28,10 @@ export const api = createApi({
                     method: "getSignaturesForAddress",
                     params: [
                         address,
-                        { limit: limit ?? 1000 }
+                        {
+                            limit: limit ?? 1000,
+                            before: before,
+                        }
                     ]
                 },
             }),
